@@ -3,12 +3,25 @@ import 'package:intl/intl.dart';
 import 'package:notestream_app/models/models.dart';
 import 'package:notestream_app/utilities/database_helper.dart';
 import 'package:notestream_app/utilities/file_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NoteManager {
-  /// Load sample notes into the DB.
-  Future loadSamples() async {
+  Future<String?> get userNotePath async {
+    final prefs = await SharedPreferences.getInstance();
+    String? userNotesPath = prefs.getString('notes_path');
+    return userNotesPath;
+  }
+
+  /// Write sample notes into the user's selected note path.
+  Future loadUserNotes({bool withSamples = false}) async {
     final FileService fs = FileService();
-    scanForNotes(fs.samplePath);
+    final notePath = await userNotePath;
+    if (notePath != null) {
+      if (withSamples) await fs.writeSampleFiles();
+      print(notePath);
+      int count = await scanForNotes(notePath);
+      print('$count sample notes loaded');
+    }
   }
 
   /// Scan the directory at a given path and add found notes to db.
@@ -22,7 +35,6 @@ class NoteManager {
     final DateFormat formatter = DateFormat('dd-MM-yyyy | HH:mm:ss');
     int count = 0;
     List<File>? noteFiles = await fs.scanDirectory(path);
-    
 
     // Operation failed if scanDirectory failed to return a list.
     if (noteFiles == null) {
@@ -38,17 +50,19 @@ class NoteManager {
       if (note != null) {
         // Update the note if needed.
         if (note.size != fileSize || note.modifiedAt != fileModifiedAt) {
-          db.updateNote(
+          String content = await getNoteContent(note.location);
+          await db.updateNote(
             note,
-            await getNoteContent(note),
+            content,
             f,
           );
         }
       } else {
         // Insert new note into the db.
-        db.insertNote(
+        String content = await getNoteContent(f.path);
+        await db.insertNote(
           f,
-          await getNoteContent(note),
+          content,
         );
       }
       count++;
@@ -66,30 +80,46 @@ class NoteManager {
     return noteList;
   }
 
+  Future<List<Tag>> get allTags async {
+    final db = DatabaseHelper.instance;
+    List<Tag> tagList = await db.tags();
+    return tagList;
+  }
+
+  /// Retreive all notes that are tagged with at least one of the given tags.
+  ///
+  /// The tag filtering is OR, not AND.
+  Future<List<Note>> getNotesByTags(List<Tag> tags) {
+    final db = DatabaseHelper.instance;
+    return db.getNotesWithTags(tags);
+  }
+
   /// Save the note as a file, then stores a reference to it in the db.
-  Future<Note?> saveNewNote(String content) async {
+  Future<Note?> saveNewNote(String content, {String? filename}) async {
     final DatabaseHelper db = DatabaseHelper.instance;
     final FileService fs = FileService();
+    final notePath = await userNotePath;
+    if (notePath == null) return null;
+
     int dupCount = 0;
 
-    // String in format 'yyyy-MM-dd-hhmmss'
-    String dateTimeString =
-        "${DateTime.now().year.toString().padLeft(4, '0')}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().hour.toString().padLeft(2, '0')}${DateTime.now().minute.toString().padLeft(2, '0')}${DateTime.now().second.toString().padLeft(2, '0')}";
+    if (filename == null) {
+      // String in format 'yyyy-MM-dd-hhmmss'
+      String dateTimeString =
+          "${DateTime.now().year.toString().padLeft(4, '0')}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}_${DateTime.now().hour.toString().padLeft(2, '0')}${DateTime.now().minute.toString().padLeft(2, '0')}${DateTime.now().second.toString().padLeft(2, '0')}";
+      filename = dateTimeString;
+    }
 
-    // Filename is the current date.
-    // String dateString =
-    //     "${DateTime.now().year.toString().padLeft(4, '0')}${DateTime.now().month.toString().padLeft(2, '0')}${DateTime.now().day.toString().padLeft(2, '0')}";
-
-    String filename = dateTimeString;
+    String filenameStatic = filename;
 
     // Append a copy count number if the filename is already in use.
-    while (await fs.fileExists('${fs.samplePath}$filename.md')) {
+    while (await fs.fileExists('$notePath$filename.md')) {
       dupCount++;
-      filename = '$dateTimeString ($dupCount)';
+      filename = '$filenameStatic ($dupCount)';
     }
 
     // Write the content to a new file.
-    File newFile = await fs.writeFile('$filename.md', content);
+    File newFile = await fs.writeFile('$filename.md', content, notePath);
 
     // Insert a new Note into the db based on the file.
     Note? newNote = await db.insertNote(newFile, content);
@@ -106,10 +136,13 @@ class NoteManager {
   Future<Note?> updateExistingNote(String content, Note note) async {
     final DatabaseHelper db = DatabaseHelper.instance;
     final FileService fs = FileService();
+    final notePath = await userNotePath;
+    if (notePath == null) return null;
 
     File file = await fs.writeFile(
       note.filename,
       content,
+      notePath,
     );
 
     Note? updated = await db.updateNote(
@@ -133,12 +166,12 @@ class NoteManager {
   }
 
   /// Get the note content as a string.
-  Future<String> getNoteContent(Note? note) async {
+  Future<String> getNoteContent(String path) async {
     final FileService fs = FileService();
-    if (note == null) {
-      return "Error: Note does not exist";
-    }
-    final path = note.location;
+    // if (note == null) {
+    //   return "Error: Note does not exist";
+    // }
+    // final path = note.location;
     try {
       return await fs.readFile(path);
     } catch (e) {

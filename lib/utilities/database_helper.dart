@@ -67,22 +67,21 @@ class DatabaseHelper {
     ''');
   }
 
-
   //--------- Helper methods ---------
-
 
   /// Insert a new Note in the db based on a given file.
   Future<Note?> insertNote(File file, String content) async {
     final Database db = await database;
-    final DateFormat formatter = DateFormat('dd-MM-yyyy | HH:mm:ss');
+    final DateFormat formatter = DateFormat('yyyy-MM-dd | HH:mm:ss');
     List<String?> tagList = tagParser(content);
     String lastModified = formatter.format(await file.lastModified());
+    String createdAt = formatter.format(file.statSync().changed);
 
     // Prepare a new note with details from the file.
     Note newNote = Note(
       id: null,
       filename: p.basename(file.path),
-      createdAt: lastModified,
+      createdAt: createdAt,
       modifiedAt: lastModified,
       size: await file.length(),
       location: file.path,
@@ -126,7 +125,7 @@ class DatabaseHelper {
   /// Update an existing note and return the updated note object.
   Future<Note?> updateNote(Note note, String content, File file) async {
     final Database db = await database;
-    final DateFormat formatter = DateFormat('dd-MM-yyyy | HH:mm:ss');
+    final DateFormat formatter = DateFormat('yyyy-MM-dd | HH:mm:ss');
     List<String?> tagList = tagParser(content);
     int newSize = await file.length();
     String newModifiedAt = formatter.format(await file.lastModified());
@@ -165,14 +164,10 @@ class DatabaseHelper {
   Future<bool> deleteNote(Note note) async {
     final Database db = await database;
     int noteId = note.id!;
-    int noteDeleteResult = await db.rawDelete(
-      'DELETE FROM $noteTable WHERE id = ?',
-      [noteId]
-    );
-    int junctionDeleteResult = await db.rawDelete(
-      'DELETE FROM $noteTagTable WHERE noteId = ?',
-      [noteId]
-    );
+    int noteDeleteResult =
+        await db.rawDelete('DELETE FROM $noteTable WHERE id = ?', [noteId]);
+    int junctionDeleteResult = await db
+        .rawDelete('DELETE FROM $noteTagTable WHERE noteId = ?', [noteId]);
 
     return (noteDeleteResult > 0);
   }
@@ -212,13 +207,13 @@ class DatabaseHelper {
     }
   }
 
-  /// Return maps of all notes in the db.
+  /// Return list of all notes in the db.
   Future<List<Note>> notes() async {
     final db = await database;
 
     // query the table for all the notes
-    final List<Map<String, Object?>> noteMaps = await db.query(noteTable, 
-    orderBy: 'modifiedAt DESC');
+    final List<Map<String, Object?>> noteMaps =
+        await db.query(noteTable, orderBy: 'modifiedAt DESC');
 
     // convert the maps into Note instances
     final List<Note> noteObjects = [];
@@ -227,6 +222,18 @@ class DatabaseHelper {
     }
 
     return noteObjects;
+  }
+
+  Future<List<Tag>> tags() async {
+    final db = await database;
+    List<Map<String, Object?>> results = await db.query(tagTable);
+
+    // convert the list of maps to a list of Tags
+    final List<Tag> tagList = [];
+    for (Map<String, Object?> map in results) {
+      tagList.add(Tag.fromMap(map));
+    }
+    return tagList;
   }
 
   /// Returns true if note exists in the db.
@@ -248,6 +255,44 @@ class DatabaseHelper {
     return -1;
   }
 
+  /// Return all Notes that contain a Tag from the given list of Tags.
+  Future<List<Note>> getNotesWithTags(List<Tag> tags) async {
+    print('Retrieving notes using tags...');
+    if (tags.isEmpty) {
+      print('No tags provided, retrieving all notes.');
+      return notes();
+    }
+    final Database db = await database;
+    List<int> tagIdList = [];
+    List<Note> noteList = [];
+    for (Tag t in tags) {
+      if (t.id != null) {
+        tagIdList.add(t.id!);
+      }
+    }
+    final placeHolderList = List.filled(tagIdList.length, '?').join(', ');
+    var result = await db.rawQuery(
+      '''
+      SELECT DISTINCT n.* 
+      FROM $noteTable n
+      JOIN $noteTagTable nt ON n.id = nt.noteId
+      JOIN $tagTable t ON t.id = nt.tagId 
+      WHERE t.id IN ($placeHolderList)
+      ORDER BY n.modifiedAt DESC
+      ''',
+      tagIdList,
+    );
+
+    print('Retrieved ${result.length} notes.');
+
+    for (Map<String, Object?> map in result) {
+      print(map.toString());
+      noteList.add(Note.fromMap(map));
+    }
+
+    return noteList;
+  }
+
   /// Returns true if noteTag junction row exists.
   Future<bool> junctionExists(int noteId, int tagId) async {
     final Database db = await database;
@@ -264,7 +309,7 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [noteId],
     );
-    
+
     if (queryResult.isEmpty) {
       return null;
     }
@@ -290,8 +335,8 @@ class DatabaseHelper {
 
   Future<Note?> getNoteByPath(String path) async {
     final db = await database;
-    final queryResult = await db.rawQuery('SELECT * FROM $noteTable WHERE location = ?',
-    [path]);
+    final queryResult = await db
+        .rawQuery('SELECT * FROM $noteTable WHERE location = ?', [path]);
 
     if (queryResult.isNotEmpty) {
       return Note.fromMap(queryResult[0]);
@@ -302,9 +347,13 @@ class DatabaseHelper {
 
   /// Finds all the tags in a text and returns them in a list.
   List<String?> tagParser(String content) {
+    print(content);
     final tagRegex = RegExp(r'#([a-zA-Z0-9_-]+)');
     final matches = tagRegex.allMatches(content);
-    final tags = matches.map((match) => match.group(0)).toList();
+    final tags = matches
+        .map((match) => match.group(0)!.replaceAll(RegExp(r'#'), ''))
+        .toList();
+    print(tags);
     return tags;
   }
 }

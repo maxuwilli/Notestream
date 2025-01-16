@@ -1,13 +1,36 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:notestream_app/models/models.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 /// Handles read and write operations for files on the target device.
 class FileService {
-  String samplePath = '/Users/maxu/Dev/Flutter/NoteStream/notestream_app/lib/samples/';
+  List<String> sampleFiles = [
+    'assets/samples/sample_001.md',
+    'assets/samples/sample_002.md',
+    'assets/samples/sample_003.md',
+  ];
+
+  /// Writes the app's sample notes into the user's selected note path.
+  /// 
+  /// Should only be done if the note path does not contain existing notes.
+  Future<bool> writeSampleFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? notePath = prefs.getString('notes_path');
+    if (notePath == null) {
+      return false;
+    }
+    for (String assetPath in sampleFiles) {
+      String filename = p.basename(assetPath);
+      String content = await rootBundle.loadString(assetPath);
+      await writeFile(filename, content, notePath);
+    }
+    return true;
+  }
 
   /// Gets the application directory across different platforms.
   Future<Directory> get _localDirectory async {
@@ -57,9 +80,9 @@ class FileService {
   }
 
   /// Writes content to a filename, returns the file reference.
-  Future<File> writeFile(String filename, String content) async {
+  Future<File> writeFile(String filename, String content, String userPath) async {
     // final directory = _localDirectory;
-    final directory = Directory(samplePath);
+    final directory = Directory(userPath);
     final path = directory.path;
     final file = File('$path/$filename');
     await file.writeAsString(content);
