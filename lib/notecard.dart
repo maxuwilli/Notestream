@@ -3,6 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:notestream_app/models/models.dart';
 import 'package:notestream_app/main.dart';
+import 'package:notestream_app/note_state.dart';
 import 'package:notestream_app/utilities/note_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -10,7 +11,10 @@ import 'package:provider/provider.dart';
 class NoteCardList extends StatelessWidget {
   const NoteCardList({
     super.key,
+    required this.cardWidth,
   });
+
+  final double cardWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +22,8 @@ class NoteCardList extends StatelessWidget {
     return Consumer<NewNoteState>(builder: (context, noteState, child) {
       // bool isCreatingNewNote = noteState.isCreatingNewNote;
       // int newNote = isCreatingNewNote ? 1 : 0;
-      return Expanded(
+      return SizedBox(
+        width: cardWidth,
         child: ListView.builder(
           itemCount: noteState.noteList.length,
           itemBuilder: (context, index) {

@@ -45,6 +45,9 @@ dependencies:
   material_tag_editor: ^0.1.2
   shared_preferences: ^2.3.5
   file_picker: ^8.1.7
+  field_suggestion: ^0.2.6
+  textfield_tags: ^3.0.1
+  settings_ui: ^2.0.2
 
 dev_dependencies:
   flutter_test:
