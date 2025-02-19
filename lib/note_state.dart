@@ -135,9 +135,16 @@ class NewNoteState extends ChangeNotifier {
   }
 
   void startNewNote() {
-    Note? nullNote;
-    noteList.insert(0, nullNote);
-    notifyListeners();
+    if (!isCreatingNewNote) {
+      isCreatingNewNote = true;
+      Note? nullNote;
+      noteList.insert(0, nullNote);
+      notifyListeners();
+    }
+  }
+
+  void finishNewNote() {
+    isCreatingNewNote = false;
   }
 
   /// Saves a new note to db and filesystem and updates app's note cache.

@@ -85,6 +85,7 @@ class _NoteCardState extends State<NoteCard> {
   void finishEditing(bool canceled, String newContent) async {
     if (!canceled) {
       if (newContent.isNotEmpty) {
+        
         note = await nState.saveNoteChanges(widget.note!, newContent);
       }
     } else {
@@ -95,6 +96,9 @@ class _NoteCardState extends State<NoteCard> {
         isEditing = false;
       });
     }
+    if (isNewNote) {
+          nState.finishNewNote();
+        }
   }
 
   void toggleEditor() {
