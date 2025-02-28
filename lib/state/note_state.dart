@@ -13,7 +13,8 @@ class NewNoteState extends ChangeNotifier {
   final Map<int, String> _noteContents = {};
   List<Note?> noteList = [];
   List<Tag> allTagsList = [];
-  List<Tag> filterTagsList = [];
+  // final List<Tag> filterTagsList = [];
+  Map<String, Tag> filterTagsMap = {};
   Map<String, Tag> tagNameMap = {};
   bool userNotesLoaded = false;
 
@@ -88,9 +89,9 @@ class NewNoteState extends ChangeNotifier {
       await _nm.loadUserNotes(withSamples: true);
     }
     List<Tag> allTags = await _nm.allTags;
-    List<Note> notes = await _nm.getNotesByTags([]);
-    for (Note note in notes) {
-      await _retrieveNoteContent(note);
+    List<Note?> notes = await _nm.getNotesByTags([]);
+    for (Note? note in notes) {
+      await _retrieveNoteContent(note!);
       noteList.add(note);
       notifyListeners();
     }
@@ -107,13 +108,21 @@ class NewNoteState extends ChangeNotifier {
 
   Future reloadNotesAndTags() async {
     List<Tag> allTags = await _nm.allTags;
-    List<Note> notes = await _nm.getNotesByTags(filterTagsList);
-    for (Note note in notes) {
-      if (!_noteContents.containsKey(note.id)) {
+    List<Note?> notes = await _nm.getNotesByTags(filterTagsMap.values.toList());
+    noteList = [];
+
+    // Notes need to be added to noteList iteratively rather than 
+    //  a direct assignment of a List<Note?>, because for 
+    //  some unknown reason (and I really tried to investigate but still don't know)
+    //  if I otherwise assign a new list directly then it generates the following 
+    //  exception when attempting to insert a null note into the list:
+    //    [type 'Null' is not a subtype of type 'Note' of 'element']
+    for (Note? note in notes) {
+      noteList.add(note);
+      if (!_noteContents.containsKey(note!.id)) {
         _retrieveNoteContent(note);
       }
     }
-    noteList = notes;
     allTagsList = allTags;
     loadTagNames();
   }
@@ -187,23 +196,28 @@ class NewNoteState extends ChangeNotifier {
 
   Future validateFilterTag(String name) async {
     if (tagNameMap.keys.contains(name)) {
-      filterTagsList.add(tagNameMap[name]!);
-      // await _getAllNotes();
-      await reloadNotesAndTags();
-      notifyListeners();
+      Tag tag = tagNameMap[name]!;
+      await addFilterTag(tag);
     }
   }
 
-  Future removeFilterTag(int index) async {
-    filterTagsList.removeAt(index);
-    noteList = await _nm.getNotesByTags(filterTagsList);
+  Future<void> addFilterTag(Tag tag) async {
+    filterTagsMap.putIfAbsent(tag.name, () => tag);
+    // await _getAllNotes();
+    await reloadNotesAndTags();
     notifyListeners();
   }
 
+  // Future removeFilterTag(int index) async {
+  //   filterTagsList.removeAt(index);
+  //   noteList = await _nm.getNotesByTags(filterTagsList);
+  //   notifyListeners();
+  // }
+
   Future removeFilterTagByName(String tagName) async {
     print('removing ${tagNameMap[tagName]}');
-    filterTagsList.removeWhere((tag) => tag.name == tagName);
-    noteList = await _nm.getNotesByTags(filterTagsList);
+    filterTagsMap.remove(tagName);
+    noteList = await _nm.getNotesByTags(filterTagsMap.values.toList());
 
     notifyListeners();
   }

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:notestream_app/models/models.dart';
-import 'package:notestream_app/main.dart';
-import 'package:notestream_app/note_state.dart';
+import 'package:notestream_app/state/note_state.dart';
 import 'package:notestream_app/utilities/note_provider.dart';
 import 'package:provider/provider.dart';
 

@@ -89,7 +89,7 @@ class NoteManager {
   /// Retreive all notes that are tagged with at least one of the given tags.
   ///
   /// The tag filtering is OR, not AND.
-  Future<List<Note>> getNotesByTags(List<Tag> tags) {
+  Future<List<Note?>> getNotesByTags(List<Tag> tags) {
     final db = DatabaseHelper.instance;
     return db.getNotesWithTags(tags);
   }

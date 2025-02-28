@@ -48,6 +48,7 @@ dependencies:
   field_suggestion: ^0.2.6
   textfield_tags: ^3.0.1
   settings_ui: ^2.0.2
+  flutter_colorpicker: ^1.1.0
 
 dev_dependencies:
   flutter_test:

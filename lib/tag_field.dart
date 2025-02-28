@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:textfield_tags/textfield_tags.dart';
-import 'package:notestream_app/note_state.dart';
+import 'package:notestream_app/state/note_state.dart';
 
 import 'models/models.dart';
 
@@ -34,12 +34,24 @@ class _TagFieldState extends State<TagField> {
     _stringTagController.dispose();
   }
 
-  static const List<String> _initialTags = <String>[];
+   static const List<String> _initialTags = [];
 
   @override
   Widget build(BuildContext context) {
     return Consumer<NewNoteState>(builder: (context, noteState, child) {
       Map<String, Tag> tagNameMap = noteState.tagNameMap;
+      List<Tag> filterTagsList = noteState.filterTagsMap.values.toList();
+
+      // Add currently active filter tags; necessary due to tags enabled via the tag drawer in the appBar.
+      List<String>? currentTags = _stringTagController.getTags;
+      currentTags ??= [];
+      for (Tag tag in filterTagsList) {
+        if (!currentTags.contains(tag.name)) {
+        _stringTagController.onTagSubmitted(tag.name);
+        }
+      }
+
+
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Column(
@@ -105,12 +117,7 @@ class _TagFieldState extends State<TagField> {
                   letterCase: LetterCase.normal,
                   validator: (String tag) {
                     noteState.validateFilterTag(tag);
-                    // if (tag == 'php') {
-                    //   return 'No, please just no';
-                    // } else if (_stringTagController.getTags!.contains(tag)) {
-                    //   return 'You\'ve already entered that';
-                    // }
-                    // return null;
+                    return null;
                   },
                   inputFieldBuilder: (context, inputFieldValues) {
                     return Padding(
