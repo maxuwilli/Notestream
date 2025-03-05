@@ -1,16 +1,19 @@
-# notestream_app
+# Notestream
 
-A new Flutter project.
+A simple markdown-based notetaking app.
 
-## Getting Started
+Works on macOS and Linux.
 
-This project is a starting point for a Flutter application.
+## Features:
+- Write and view notes with markdown formatting.
+- Organize notes using in-text tags.
+- View notes in a scrollable timeline.
+- Change the theme color and brightness (light, dark, or system).
 
-A few resources to get you started if this is your first Flutter project:
+## Installation:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+**Build from source:**
+ 1. Clone this repository.
+ 2. cd into __../notestream_app__ and run in terminal:
+    - For macOS: ```$ flutter build macos```
+    - For Linux: ```$ flutter build linux```
