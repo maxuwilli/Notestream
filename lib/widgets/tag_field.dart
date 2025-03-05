@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:textfield_tags/textfield_tags.dart';
 import 'package:notestream_app/state/note_state.dart';
-import 'models/models.dart';
+import '../models/models.dart';
 
 class TagField extends StatefulWidget {
   const TagField({super.key});

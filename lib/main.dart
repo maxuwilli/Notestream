@@ -4,12 +4,12 @@ import 'dart:math';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:notestream_app/state/note_state.dart';
-import 'package:notestream_app/notecard.dart';
+import 'package:notestream_app/widgets/notecard.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
-import 'settings_page.dart';
-import 'tag_field.dart';
+import 'widgets/settings_page.dart';
+import 'widgets/tag_field.dart';
 import 'state/theme_state.dart';
 
 void main() async {
