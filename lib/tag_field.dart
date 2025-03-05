@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:textfield_tags/textfield_tags.dart';
 import 'package:notestream_app/state/note_state.dart';
-
 import 'models/models.dart';
 
 class TagField extends StatefulWidget {
@@ -38,7 +37,7 @@ class _TagFieldState extends State<TagField> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<NewNoteState>(builder: (context, noteState, child) {
+    return Consumer<NoteState>(builder: (context, noteState, child) {
       Map<String, Tag> tagNameMap = noteState.tagNameMap;
       List<Tag> filterTagsList = noteState.filterTagsMap.values.toList();
 
@@ -183,7 +182,6 @@ class _TagFieldState extends State<TagField> {
                                                     color: Colors.white),
                                               ),
                                               onTap: () {
-                                                //print("$tag selected");
                                               },
                                             ),
                                             const SizedBox(width: 4.0),

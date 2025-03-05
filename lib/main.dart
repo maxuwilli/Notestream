@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
-import 'package:notestream_app/models/models.dart';
 import 'package:notestream_app/state/note_state.dart';
 import 'package:notestream_app/notecard.dart';
-import 'package:notestream_app/utilities/note_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
@@ -15,39 +14,8 @@ import 'state/theme_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized;
-  // await SharedPrefs().init();
   runApp(const MyApp());
 }
-
-// Shared preferences for global use.
-
-const String keyThemeColor = "theme_color_hex_string";
-const String keyThemeMode = "theme_mode";
-
-// class SharedPrefs {
-//   late final SharedPreferences _sharedPrefs;
-//   static final SharedPrefs _instance = SharedPrefs._internal();
-//   factory SharedPrefs() => _instance;
-//   SharedPrefs._internal();
-
-//   init() async {
-//     _sharedPrefs = await SharedPreferences.getInstance();
-//   }
-
-//   // Get/Set for theme color (hex value)
-//   String get themeColorHexString => _sharedPrefs.getString(keyThemeColor) ?? '';
-
-//   set themeColorHexString(String hexString) {
-//     _sharedPrefs.setString(keyThemeColor, hexString);
-//   }
-
-//   // Get/Set for theme mode (0, 1, 2 == system, light, dark)
-//   int get themeMode => _sharedPrefs.getInt(keyThemeMode) ?? 0;
-
-//   set themeMode(int optionValue) {
-//     _sharedPrefs.setInt(keyThemeMode, optionValue);
-//   }
-// }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -73,7 +41,7 @@ class MyApp extends StatelessWidget {
             } else {
               child = MultiProvider(
                   providers: [
-                    ChangeNotifierProvider(create: (context) => NewNoteState()),
+                    ChangeNotifierProvider(create: (context) => NoteState()),
                     ChangeNotifierProvider(create: (context) => ThemeState()),
                   ],
                   builder: (context, child) {
@@ -100,137 +68,11 @@ class MyApp extends StatelessWidget {
                   height: 60,
                   child: CircularProgressIndicator(),
                 ),
-                Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: Text('Awaiting result...'),
-                ),
               ],
             );
           }
           return child;
         });
-  }
-}
-
-class NoteState extends ChangeNotifier {
-  bool initNeeded = true;
-  Completer _refreshCompleter = Completer();
-  List<Tag> filterTags = []; // Tags used to filter _noteList;
-  List<Tag> _allTagsList = []; // All tags in the DB.
-  final _nm = NoteManager();
-  bool isCreatingNewNote = false;
-  bool deletionInProgress = false;
-  List<Note?> _noteList = [];
-  int noteCount = 0;
-  Map<String, Tag> tagNameMap = {};
-
-  Future _initData() async {
-    await _nm.loadUserNotes(withSamples: true);
-    await refreshNotesAndTags();
-    initNeeded = false;
-  }
-
-  void startCreatingNote() {
-    isCreatingNewNote = true;
-    notifyListeners();
-  }
-
-  Future finishCreatingNote() async {
-    isCreatingNewNote = false;
-    await refreshNotesAndTags();
-    notifyListeners();
-  }
-
-  // Only use this any time the Notes are updates.
-  Future refreshNotesAndTags() async {
-    _refreshCompleter = Completer();
-    await _getAllNotes();
-    await _getAllTags();
-    await loadTagNames();
-    _refreshCompleter.complete();
-    // notifyListeners();
-  }
-
-  Future _getAllNotes() async {
-    // await _nm.loadSamples();
-    _noteList = await _nm.getNotesByTags(filterTags);
-    // notifyListeners();
-  }
-
-  Future _getAllTags() async {
-    _allTagsList = await _nm.allTags;
-    // notifyListeners();
-  }
-
-  /// Retrieves an updated noteList if the result of an operation is true.
-  ///
-  /// For example, if a note deletion returns true, the noteList is reloaded.
-  void reloadAfterNoteDeletion(Future<bool> operationResult) async {
-    _refreshCompleter = Completer();
-    if (await operationResult) {
-      await refreshNotesAndTags();
-      notifyListeners();
-    } else {
-      _refreshCompleter.complete();
-    }
-  }
-
-  /// Returns a list of all notes, filtered by filterTags.
-  ///
-  /// Ensures data is initialized before retrieving.
-  /// Also ensures only the most recent data is provided.
-  Future<List<Note?>> get noteList async {
-    if (initNeeded) {
-      await _initData();
-    }
-    // Wait for a possible pending refresh to be completed.
-    await _refreshCompleter.future;
-
-    return _noteList;
-  }
-
-  /// Return a list of all existing tags.
-  Future<List<Tag>> get allTagsList async {
-    if (initNeeded) {
-      _initData();
-    }
-
-    // Wait for a possible pending refresh to be completed.
-    await _refreshCompleter.future;
-
-    return _allTagsList;
-  }
-
-  void reloadAfterNoteUpdate(Future<Note?> note) async {
-    _refreshCompleter = Completer();
-    if (await note != null) {
-      await refreshNotesAndTags();
-      notifyListeners();
-    } else {
-      _refreshCompleter.complete();
-    }
-  }
-
-  Future validateFilterTag(String name) async {
-    if (tagNameMap.keys.contains(name)) {
-      filterTags.add(tagNameMap[name]!);
-      // await _getAllNotes();
-      await refreshNotesAndTags();
-
-      notifyListeners();
-    }
-  }
-
-  Future removeFilterTag(int index) async {
-    filterTags.removeAt(index);
-    await _getAllNotes();
-    notifyListeners();
-  }
-
-  Future loadTagNames() async {
-    for (Tag tag in _allTagsList) {
-      tagNameMap.putIfAbsent(tag.name, () => tag);
-    }
   }
 }
 
@@ -253,34 +95,36 @@ class _MyHomePageState extends State<MyHomePage> {
     // The snippet below is commented out because I added it back when I knew absolutely nothing and now I know that this is only triggered AFTER the frame is rendered which is the opposite of what I think I wanted when I first added this because I'm kinda dumb.
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<NewNoteState>(context, listen: false).initData();
+      Provider.of<NoteState>(context, listen: false).initData();
     });
   }
 
   void openSettings(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => SettingsPage()),
+      MaterialPageRoute(builder: (context) => const SettingsPage()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     String notesPath;
-    Widget mainPage = LayoutBuilder(builder: (context, constraints) {
-      double smallestDimension =
-          min(constraints.maxHeight, constraints.maxWidth);
-      return Column(
-        children: [
-          const NewNoteButton(),
-          Expanded(
-              child: NoteCardList(
-            cardWidth: smallestDimension,
-          )),
-        ],
-      );
-    });
+    Widget mainPage = Center(
+      child: LayoutBuilder(builder: (context, constraints) {
+        double smallestDimension =
+            min(constraints.maxHeight, constraints.maxWidth);
+        return Column(
+          children: [
+            const NewNoteButton(),
+            Expanded(
+                child: NoteCardList(
+              cardWidth: smallestDimension,
+            )),
+          ],
+        );
+      }),
+    );
 
-    return Consumer<NewNoteState>(
+    return Consumer<NoteState>(
       builder: (context, noteState, child) {
         return Scaffold(
           appBar: AppBar(
@@ -292,39 +136,29 @@ class _MyHomePageState extends State<MyHomePage> {
                   Icons.settings,
                 ),
               ),
-              // PopupMenuButton(
-              //   // onSelected: (item) => onSelected(context, item),
-              //     itemBuilder: (context) => [
-              //           const PopupMenuItem(value: 0, child: Text('Settings')),
-              //         ])
             ],
           ),
           drawer: Drawer(
-            // child: ListView(
-            //   children: const [
-            //   DrawerHeader(child: Text('Tags')),
-            //   ListTile()
-            //   ],
-            child: ListView.builder(
-              itemCount: noteState.allTagsList.length,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return const DrawerHeader(
-                    margin: EdgeInsets.all(0),
-                    child: Text('Tags'),);
-                } else {
-                  var tagMapEntry = noteState.tagNameMap.entries.elementAt(index - 1);
-                  return ListTile(
-                    title: Text(tagMapEntry.key),
-                    onTap: () {
-                      noteState.addFilterTag(tagMapEntry.value);
-                      Navigator.pop(context);
-                    },
-                  );
-                }
-            })
-            ),
-          
+              child: ListView.builder(
+                  itemCount: noteState.allTagsList.length,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return const DrawerHeader(
+                        margin: EdgeInsets.all(0),
+                        child: Text('Tags'),
+                      );
+                    } else {
+                      var tagMapEntry =
+                          noteState.tagNameMap.entries.elementAt(index - 1);
+                      return ListTile(
+                        title: Text(tagMapEntry.key),
+                        onTap: () {
+                          noteState.addFilterTag(tagMapEntry.value);
+                          Navigator.pop(context);
+                        },
+                      );
+                    }
+                  })),
           body: SafeArea(
             child: noteState.notesPathIsLoaded
                 ? mainPage
@@ -337,7 +171,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (notesPath.isEmpty) {
                           child = const WelcomePage();
                         } else {
-                          print('user note path is: $notesPath');
+                          developer.log('user note path is: $notesPath');
                           child = mainPage;
                         }
                       } else if (notesPathSnapshot.hasError) {
@@ -387,7 +221,7 @@ class WelcomePage extends StatelessWidget {
     if (selectedDirectory != null) {
       final dir = Directory(selectedDirectory);
       if (await dir.exists()) {
-        print('Selected path: $selectedDirectory as the users note folder');
+        developer.log('user selected the following note path: $selectedDirectory');
         return selectedDirectory;
       }
     }
@@ -396,7 +230,7 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<NewNoteState>(builder: (context, noteState, child) {
+    return Consumer<NoteState>(builder: (context, noteState, child) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -435,7 +269,7 @@ class NewNoteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var noteState = context.watch<NewNoteState>();
+    var noteState = context.watch<NoteState>();
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: FilledButton(

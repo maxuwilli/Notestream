@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:notestream_app/models/models.dart';
@@ -28,7 +29,7 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     String path = p.join(await getDatabasesPath(), _databaseName);
 
-    print(path);
+    developer.log('initializing app database at path: $path');
 
     return await openDatabase(
       path,
@@ -166,8 +167,6 @@ class DatabaseHelper {
     int noteId = note.id!;
     int noteDeleteResult =
         await db.rawDelete('DELETE FROM $noteTable WHERE id = ?', [noteId]);
-    int junctionDeleteResult = await db
-        .rawDelete('DELETE FROM $noteTagTable WHERE noteId = ?', [noteId]);
 
     return (noteDeleteResult > 0);
   }
@@ -186,7 +185,7 @@ class DatabaseHelper {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } catch (e) {
-      print('DbException$e');
+      developer.log('DbException: $e');
       return -1;
     }
   }
@@ -202,7 +201,7 @@ class DatabaseHelper {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } catch (e) {
-      print('DbException$e');
+      developer.log('DbException: $e');
       return null;
     }
   }
@@ -257,9 +256,9 @@ class DatabaseHelper {
 
   /// Return all Notes that contain a Tag from the given list of Tags.
   Future<List<Note>> getNotesWithTags(List<Tag> tags) async {
-    print('Retrieving notes using tags...');
+    developer.log('retrieving notes using taglist... ');
     if (tags.isEmpty) {
-      print('No tags provided, retrieving all notes.');
+      developer.log('no tags provided; retrieving all notes');
       return notes();
     }
     final Database db = await database;
@@ -283,10 +282,9 @@ class DatabaseHelper {
       tagIdList,
     );
 
-    print('Retrieved ${result.length} notes.');
+    developer.log('retrieved ${result.length} notes');
 
     for (Map<String, Object?> map in result) {
-      print(map.toString());
       noteList.add(Note.fromMap(map));
     }
 
@@ -347,13 +345,12 @@ class DatabaseHelper {
 
   /// Finds all the tags in a text and returns them in a list.
   List<String?> tagParser(String content) {
-    print(content);
     final tagRegex = RegExp(r'#([a-zA-Z0-9_-]+)');
     final matches = tagRegex.allMatches(content);
     final tags = matches
         .map((match) => match.group(0)!.replaceAll(RegExp(r'#'), ''))
         .toList();
-    print(tags);
+    // developer.log('found tags in note: $tags');
     return tags;
   }
 }

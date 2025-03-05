@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:notestream_app/models/models.dart';
-import 'package:notestream_app/utilities/note_provider.dart';
+import 'package:notestream_app/utilities/note_manager.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class NewNoteState extends ChangeNotifier {
+class NoteState extends ChangeNotifier {
   String? _userNotesPath;
   final NoteManager _nm = NoteManager();
   bool isCreatingNewNote = false;
@@ -18,7 +19,7 @@ class NewNoteState extends ChangeNotifier {
   Map<String, Tag> tagNameMap = {};
   bool userNotesLoaded = false;
 
-  bool booted = false;
+  // bool booted = false;
 
   /// Passively check for a notes path.
   bool get notesPathIsLoaded {
@@ -86,7 +87,7 @@ class NewNoteState extends ChangeNotifier {
 
     if (!userNotesLoaded) {
       userNotesLoaded = true;
-      await _nm.loadUserNotes(withSamples: true);
+      await _nm.loadUserNotes(withSamples: false);
     }
     List<Tag> allTags = await _nm.allTags;
     List<Note?> notes = await _nm.getNotesByTags([]);
@@ -215,9 +216,10 @@ class NewNoteState extends ChangeNotifier {
   // }
 
   Future removeFilterTagByName(String tagName) async {
-    print('removing ${tagNameMap[tagName]}');
+    
     filterTagsMap.remove(tagName);
     noteList = await _nm.getNotesByTags(filterTagsMap.values.toList());
+    developer.log('removed filter tag: ${tagNameMap[tagName]}');
 
     notifyListeners();
   }

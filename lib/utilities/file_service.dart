@@ -1,7 +1,8 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+// import 'package:path_provider/path_provider.dart';
 import 'package:notestream_app/models/models.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,12 +34,12 @@ class FileService {
   }
 
   /// Gets the application directory across different platforms.
-  Future<Directory> get _localDirectory async {
+  // Future<Directory> get _localDirectory async {
     
-    final directory = await getApplicationDocumentsDirectory();
-    // const dirString = '/Users/maxu/Dev/Flutter/SingleNote-app/singlenote_app/lib/sample_notes/';
-    return directory;
-  }
+  //   final directory = await getApplicationDocumentsDirectory();
+  //   // const dirString = '/Users/maxu/Dev/Flutter/SingleNote-app/singlenote_app/lib/sample_notes/';
+  //   return directory;
+  // }
 
   /// Scan the directory at the given path and return a list of .md and .txt files.
   Future<List<File>?> scanDirectory(String path) async {
@@ -58,7 +59,7 @@ class FileService {
         }
       }
     } catch(e) {
-      print(e);
+      developer.log('error while scanning note directory: $e');
       return null;
     }
 
@@ -74,7 +75,7 @@ class FileService {
       await file.delete();
       return true;
     } catch(e) {
-      print(e);
+      developer.log('error while deleting note file: $e');
       return false;
     }
   }
@@ -86,7 +87,7 @@ class FileService {
     final path = directory.path;
     final file = File('$path/$filename');
     await file.writeAsString(content);
-    print("FS.writeFile: file saved as $file");
+    developer.log("new note file saved as: $file");
     // return openNote(file);
     return file;
   }

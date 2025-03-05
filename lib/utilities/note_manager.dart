@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:intl/intl.dart';
 import 'package:notestream_app/models/models.dart';
 import 'package:notestream_app/utilities/database_helper.dart';
@@ -12,15 +13,18 @@ class NoteManager {
     return userNotesPath;
   }
 
-  /// Write sample notes into the user's selected note path.
+  /// Scan designated note path for notes and load into db.
+  ///
+  /// Scans the note path provided by the user ( path stored in SharedPreferences).
+  /// Optionally, copy app's sample notes into note path and db.
   Future loadUserNotes({bool withSamples = false}) async {
     final FileService fs = FileService();
     final notePath = await userNotePath;
     if (notePath != null) {
       if (withSamples) await fs.writeSampleFiles();
-      print(notePath);
-      int count = await scanForNotes(notePath);
-      print('$count sample notes loaded');
+      (notePath);
+      int count = await _scanForNotes(notePath);
+      developer.log('$count notes found');
     }
   }
 
@@ -29,7 +33,7 @@ class NoteManager {
   /// Creates or updates Note references for any files it finds that end in .md or .txt.
   /// Files with existing Note entries in the db will only have the references updated if size or modifiedAt do not match.
   /// Returns the number of notes found or updated, or -1 if the scan failed.
-  Future<int> scanForNotes(String path) async {
+  Future<int> _scanForNotes(String path) async {
     final db = DatabaseHelper.instance;
     final fs = FileService();
     final DateFormat formatter = DateFormat('dd-MM-yyyy | HH:mm:ss');
@@ -168,17 +172,12 @@ class NoteManager {
   /// Get the note content as a string.
   Future<String> getNoteContent(String path) async {
     final FileService fs = FileService();
-    // if (note == null) {
-    //   return "Error: Note does not exist";
-    // }
-    // final path = note.location;
+
     try {
       return await fs.readFile(path);
     } catch (e) {
-      print(path);
-      return "Error: Failed to retrieve note contents";
+      developer.log('error while retrieving note contents at path $path: $e');
+      return 'Oops: something went wrong while retrieving this note';
     }
   }
-
-  /// Create an empty note file with corresponding database entry.
 }

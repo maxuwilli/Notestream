@@ -3,7 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:notestream_app/models/models.dart';
 import 'package:notestream_app/state/note_state.dart';
-import 'package:notestream_app/utilities/note_provider.dart';
+import 'package:notestream_app/utilities/note_manager.dart';
 import 'package:provider/provider.dart';
 
 // TODO: NoteCardList is a replacement for NoteCardChain
@@ -18,7 +18,7 @@ class NoteCardList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO: NewNoteState is a replacement for NoteState, so refactor accordingly.
-    return Consumer<NewNoteState>(builder: (context, noteState, child) {
+    return Consumer<NoteState>(builder: (context, noteState, child) {
       // bool isCreatingNewNote = noteState.isCreatingNewNote;
       // int newNote = isCreatingNewNote ? 1 : 0;
       return SizedBox(
@@ -54,7 +54,7 @@ class NoteCard extends StatefulWidget {
 
 class _NoteCardState extends State<NoteCard> {
   final NoteManager nm = NoteManager();
-  late NewNoteState nState;
+  late NoteState nState;
   late bool isEditing;
   late bool isNewNote;
   late Note? note;
@@ -73,7 +73,7 @@ class _NoteCardState extends State<NoteCard> {
       isEditing = false;
       leadingHeader = widget.note!.modifiedAt!;
     }
-    nState = context.read<NewNoteState>();
+    nState = context.read<NoteState>();
     content = nState.getNoteContent(note) ?? '';
     super.initState();
   }
@@ -118,7 +118,7 @@ class _NoteCardState extends State<NoteCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<NewNoteState>(builder: (context, noteState, child) {
+    return Consumer<NoteState>(builder: (context, noteState, child) {
       Widget innerCard = isEditing
           ? EditingNoteCardInner(
               widget: widget,
@@ -201,7 +201,7 @@ class _EditingNoteCardInnerState extends State<EditingNoteCardInner> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<NewNoteState>(builder: (context, noteState, child) {
+    return Consumer<NoteState>(builder: (context, noteState, child) {
       var quillEditorConfigs = const QuillEditorConfigurations(
         showCursor: true,
         // textSelectionThemeData: textTheme,
