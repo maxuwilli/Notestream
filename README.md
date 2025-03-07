@@ -2,11 +2,11 @@
 
 A simple markdown-based notetaking app.
 
-![Screenshot 2025-03-07 at 3 44 44 PM](https://github.com/user-attachments/assets/a9ae1da3-c03b-44f5-8c75-7b84b5b01cef)
+<img src="https://github.com/user-attachments/assets/a9ae1da3-c03b-44f5-8c75-7b84b5b01cef" width="540">
 
 Works on macOS and Linux.
 
-__Disclaimer:__ *This is an ongoing personal project. I've experimented with many different notetaking apps in the past, so I figured I would build my own as a way to sharpen my Flutter skills. Expect bugs, but also progress!*
+*This is an ongoing personal project. I've experimented with many different notetaking apps in the past, so I figured I would build my own as a way to sharpen my Flutter skills. Expect bugs, but also progress!*
 
 ## Features:
 - Write and view notes with markdown formatting.
