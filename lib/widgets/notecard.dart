@@ -32,7 +32,8 @@ class NoteCardList extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: NoteCard(key: ObjectKey(note), note: note),
-              ),);
+              ),
+            );
           },
         ),
       );
@@ -79,13 +80,16 @@ class _NoteCardState extends State<NoteCard> {
   }
 
   /// Sends the new content to the NoteState for updating.
-  /// 
+  ///
   /// No need to change the widget state, as the change provider will notify the parent to rebuild this widget with updated content.
   void finishEditing(bool canceled, String newContent) async {
     if (!canceled) {
       if (newContent.isNotEmpty) {
-        
-        note = await nState.saveNoteChanges(widget.note!, newContent);
+        if (isNewNote) {
+          nState.saveNewNote(newContent);
+        } else {
+          note = await nState.saveNoteChanges(widget.note!, newContent);
+        }
       }
     } else {
       if (isNewNote) {
@@ -96,8 +100,8 @@ class _NoteCardState extends State<NoteCard> {
       });
     }
     if (isNewNote) {
-          nState.finishNewNote();
-        }
+      nState.finishNewNote();
+    }
   }
 
   void toggleEditor() {
@@ -233,11 +237,7 @@ class _EditingNoteCardInnerState extends State<EditingNoteCardInner> {
                     onPressed: () {
                       String editedContent =
                           _quillController.document.toPlainText().trim();
-                      if (widget.isNewNote) {
-                        noteState.saveNewNote(editedContent);
-                      } else {
-                        widget.onEditingFinish(false, editedContent);
-                      }
+                      widget.onEditingFinish(false, editedContent);
                     },
                     label: const Icon(
                       Icons.done,
