@@ -89,6 +89,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  String? notesPath;
   @override
   void initState() {
     super.initState();
@@ -99,15 +100,19 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<String?> getNotesPath(Future retrieveNotesPath) async {
+    notesPath ??= await retrieveNotesPath;
+    return notesPath;
+  }
+
   void openSettings(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => const SettingsPage()),
+      MaterialPageRoute(builder: (context) => SettingsPage(userNotesPath: notesPath!)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    String notesPath;
     Widget mainPage = Center(
       child: LayoutBuilder(builder: (context, constraints) {
         double smallestDimension =
@@ -162,13 +167,14 @@ class _MyHomePageState extends State<MyHomePage> {
           body: SafeArea(
             child: noteState.notesPathIsLoaded
                 ? mainPage
-                : FutureBuilder<String>(
-                    future: noteState.getNotesPath(),
+                : FutureBuilder<String?>(
+                    future: getNotesPath(noteState.getNotesPath()),
                     builder: (context, notesPathSnapshot) {
                       Widget child;
                       if (notesPathSnapshot.hasData) {
-                        notesPath = notesPathSnapshot.data!;
-                        if (notesPath.isEmpty) {
+                        String path = notesPathSnapshot.data!;
+                        
+                        if (path.isEmpty) {
                           child = const WelcomePage();
                         } else {
                           developer.log('user note path is: $notesPath');
@@ -249,10 +255,7 @@ class WelcomePage extends StatelessWidget {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () async {
-                  String? notesPath = await _selectDirectory();
-                  if (notesPath != null) {
-                    await noteState.setNotesPath(notesPath);
-                  }
+                  await noteState.setNewNotesPath;
                 },
                 child: const Text('Select a folder for your notes'),
               ),

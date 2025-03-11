@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:developer' as developer;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:notestream_app/models/models.dart';
 import 'package:notestream_app/utilities/note_manager.dart';
@@ -20,6 +21,19 @@ class NoteState extends ChangeNotifier {
   bool userNotesLoaded = false;
 
   // bool booted = false;
+
+  Future<String?> _selectDirectory() async {
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+  
+    if (selectedDirectory != null) {
+      final dir = Directory(selectedDirectory);
+      if (await dir.exists()) {
+        developer.log('user selected the following note path: $selectedDirectory');
+        return selectedDirectory;
+      }
+    }
+    return null;
+  }
 
   /// Passively check for a notes path.
   bool get notesPathIsLoaded {
@@ -62,7 +76,7 @@ class NoteState extends ChangeNotifier {
     // Default to appDocDir because anything else requires ample shenaniganery.
     if (Platform.isIOS) {
       final dir = await getApplicationDocumentsDirectory();
-      await setNotesPath(dir.path);
+      await _setNotesPath(dir.path);
       _userNotesPath = prefs.getString('notes_path');
       initData();
       if (_userNotesPath != null) return _userNotesPath!;
@@ -70,7 +84,15 @@ class NoteState extends ChangeNotifier {
     return '';
   }
 
-  Future setNotesPath(String userNotesPath) async {
+  Future<String?> get setNewNotesPath async {
+    String? path = await _selectDirectory();
+    if (path != null) {
+       await _setNotesPath(path);
+    }
+    return path;
+  }
+
+  Future _setNotesPath(String userNotesPath) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('notes_path', userNotesPath);
     _userNotesPath = userNotesPath;
@@ -86,8 +108,8 @@ class NoteState extends ChangeNotifier {
     // }
 
     if (!userNotesLoaded) {
-      userNotesLoaded = true;
       await _nm.loadUserNotes(withSamples: false);
+      userNotesLoaded = true;
     }
     List<Tag> allTags = await _nm.allTags;
     List<Note?> notes = await _nm.getNotesByTags([]);
@@ -112,10 +134,10 @@ class NoteState extends ChangeNotifier {
     List<Note?> notes = await _nm.getNotesByTags(filterTagsMap.values.toList());
     noteList = [];
 
-    // Notes need to be added to noteList iteratively rather than 
-    //  a direct assignment of a List<Note?>, because for 
+    // Notes need to be added to noteList iteratively rather than
+    //  a direct assignment of a List<Note?>, because for
     //  some unknown reason (and I really tried to investigate but still don't know)
-    //  if I otherwise assign a new list directly then it generates the following 
+    //  if I otherwise assign a new list directly then it generates the following
     //  exception when attempting to insert a null note into the list:
     //    [type 'Null' is not a subtype of type 'Note' of 'element']
     for (Note? note in notes) {
@@ -216,7 +238,6 @@ class NoteState extends ChangeNotifier {
   // }
 
   Future removeFilterTagByName(String tagName) async {
-    
     filterTagsMap.remove(tagName);
     noteList = await _nm.getNotesByTags(filterTagsMap.values.toList());
     developer.log('removed filter tag: ${tagNameMap[tagName]}');
