@@ -180,7 +180,7 @@ class NoteState extends ChangeNotifier {
   }
 
   /// Saves a new note to db and filesystem and updates app's note cache.
-  void saveNewNote(String content) async {
+  Future saveNewNote(String content) async {
     if (content.isNotEmpty) {
       Note? note = await _nm.saveNewNote(content);
       if (note != null) {

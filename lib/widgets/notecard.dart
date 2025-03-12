@@ -86,7 +86,7 @@ class _NoteCardState extends State<NoteCard> {
     if (!canceled) {
       if (newContent.isNotEmpty) {
         if (isNewNote) {
-          nState.saveNewNote(newContent);
+          note = await nState.saveNewNote(newContent);
         } else {
           note = await nState.saveNoteChanges(widget.note!, newContent);
         }
